@@ -15,7 +15,9 @@ use auth::AuthService;
 use config::Config;
 use db::create_pool;
 use http::{KlineHandler, StockListHandler};
+use mcp::tools::StockMcpService;
 use rate_limit::RateLimiter;
+use rmcp::transport::streamable_http_server::{StreamableHttpServerConfig, StreamableHttpService, session::local::LocalSessionManager};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -67,20 +69,41 @@ async fn main() -> anyhow::Result<()> {
     let mcp_cfg = cfg.mcp.clone();
     let mcp_pool = pool.clone();
     let mcp_auth = auth.clone();
-    let mcp_rate_limiter = rate_limiter.clone();
-    let _mcp_handle = tokio::spawn(async move {
+    let mcp_handle = tokio::spawn(async move {
+        let ct = tokio_util::sync::CancellationToken::new();
+
+        let service = StreamableHttpService::new(
+            move || Ok(StockMcpService::new(mcp_pool.clone(), mcp_auth.clone())),
+            LocalSessionManager::default().into(),
+            StreamableHttpServerConfig::default().with_cancellation_token(ct.child_token()),
+        );
+
+        let router = axum::Router::new().nest_service("/mcp", service);
         let addr = format!("{}:{}", mcp_cfg.host, mcp_cfg.port);
         tracing::info!("MCP server listening on {}", addr);
-
-        // Placeholder: actual rmcp server setup goes here
-        // For now, we just log the address since rmcp API is not yet wired up
-        loop {
-            tokio::time::sleep(tokio::time::Duration::from_secs(60)).await;
-        }
+        let tcp_listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
+        axum::serve(tcp_listener, router)
+            .with_graceful_shutdown(async move {
+                tokio::signal::ctrl_c().await.unwrap();
+                ct.cancel();
+            })
+            .await
+            .unwrap();
     });
 
-    // Wait for HTTP server (MCP is placeholder)
-    http_handle.await?;
+    // Wait for both servers
+    tokio::select! {
+        result = http_handle => {
+            if let Err(e) = result {
+                tracing::error!("HTTP server error: {}", e);
+            }
+        }
+        result = mcp_handle => {
+            if let Err(e) = result {
+                tracing::error!("MCP server error: {}", e);
+            }
+        }
+    }
 
     Ok(())
 }
