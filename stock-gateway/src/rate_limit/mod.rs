@@ -4,6 +4,7 @@ pub use sliding_window::SlidingWindowLimiter;
 
 use crate::config::RateLimitConfig;
 
+#[derive(Debug)]
 pub struct RateLimiter {
     ip_limiter: SlidingWindowLimiter,
     key_limiter: SlidingWindowLimiter,

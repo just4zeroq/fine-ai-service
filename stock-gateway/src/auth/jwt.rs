@@ -11,12 +11,25 @@ pub struct Claims {
     pub iss: String,
 }
 
+#[derive(Clone)]
 pub struct JwtAuth {
+    #[allow(dead_code)]
     encoding_key: EncodingKey,
+    #[allow(dead_code)]
     decoding_key: DecodingKey,
     validation: Validation,
     issuer: String,
     expiration_hours: u64,
+}
+
+impl std::fmt::Debug for JwtAuth {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("JwtAuth")
+            .field("validation", &self.validation)
+            .field("issuer", &self.issuer)
+            .field("expiration_hours", &self.expiration_hours)
+            .finish()
+    }
 }
 
 impl JwtAuth {

@@ -14,6 +14,15 @@ pub struct SlidingWindowLimiter {
     counters: DashMap<String, Window>,
 }
 
+impl std::fmt::Debug for SlidingWindowLimiter {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("SlidingWindowLimiter")
+            .field("limit", &self.limit)
+            .field("window_sec", &self.window_sec)
+            .finish()
+    }
+}
+
 impl SlidingWindowLimiter {
     pub fn new(limit: u32, window_sec: u64) -> Self {
         Self {

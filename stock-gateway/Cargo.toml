@@ -6,6 +6,7 @@ edition = "2021"
 [dependencies]
 # Web framework
 salvo = { version = "0.76", features = ["cookie", "jwt-auth"] }
+async-trait = "0.1"
 
 # MCP protocol
 rmcp = "0.3"

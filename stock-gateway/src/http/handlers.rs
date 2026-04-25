@@ -1,3 +1,4 @@
+use async_trait::async_trait;
 use salvo::prelude::*;
 use std::sync::Arc;
 
@@ -7,7 +8,7 @@ use crate::error::{write_error_response, AppError};
 use crate::models::{KlineResponse, StockListResponse};
 use crate::rate_limit::{RateLimiter, RateLimitResult};
 
-#[derive(Debug, Handler)]
+#[derive(Debug)]
 pub struct StockListHandler {
     pool: sqlx::MySqlPool,
     auth: Arc<AuthService>,
@@ -22,9 +23,21 @@ impl StockListHandler {
 
 #[async_trait]
 impl Handler for StockListHandler {
-    async fn handle(&self, req: &mut Request, res: &mut Response) -> anyhow::Result<()> {
+    async fn handle(&self, req: &mut Request, _depot: &mut Depot, res: &mut Response, _ctrl: &mut FlowCtrl) {
         // Rate limit check
-        let ip = req.peer_addr().map(|a| a.to_string()).unwrap_or_default();
+        // Try to get real IP from X-Forwarded-For, X-Real-IP, or fallback to remote addr
+        let ip = req
+            .headers()
+            .get("x-forwarded-for")
+            .and_then(|v| v.to_str().ok())
+            .map(|s| s.split(',').next().unwrap_or(s).trim().to_string())
+            .or_else(|| {
+                req.headers()
+                    .get("x-real-ip")
+                    .and_then(|v| v.to_str().ok())
+                    .map(|s| s.to_string())
+            })
+            .unwrap_or_else(|| "127.0.0.1".to_string());
         let auth_header = req.headers().get("authorization").and_then(|v| v.to_str().ok());
 
         let key = auth_header.and_then(|h| {
@@ -38,11 +51,11 @@ impl Handler for StockListHandler {
         match self.rate_limiter.check(&ip, key) {
             RateLimitResult::KeyLimited => {
                 write_error_response(res, &AppError::RateLimited("Key rate limit exceeded".into()));
-                return Ok(());
+                return;
             }
             RateLimitResult::IpLimited => {
                 write_error_response(res, &AppError::RateLimited("IP rate limit exceeded".into()));
-                return Ok(());
+                return;
             }
             RateLimitResult::Allowed => {}
         }
@@ -50,7 +63,7 @@ impl Handler for StockListHandler {
         // Auth check
         if let Err(e) = self.auth.validate_http(auth_header) {
             write_error_response(res, &e);
-            return Ok(());
+            return;
         }
 
         // Parse query
@@ -66,11 +79,10 @@ impl Handler for StockListHandler {
                 write_error_response(res, &e);
             }
         }
-        Ok(())
     }
 }
 
-#[derive(Debug, Handler)]
+#[derive(Debug)]
 pub struct KlineHandler {
     pool: sqlx::MySqlPool,
     auth: Arc<AuthService>,
@@ -85,9 +97,21 @@ impl KlineHandler {
 
 #[async_trait]
 impl Handler for KlineHandler {
-    async fn handle(&self, req: &mut Request, res: &mut Response) -> anyhow::Result<()> {
+    async fn handle(&self, req: &mut Request, _depot: &mut Depot, res: &mut Response, _ctrl: &mut FlowCtrl) {
         // Rate limit check
-        let ip = req.peer_addr().map(|a| a.to_string()).unwrap_or_default();
+        // Try to get real IP from X-Forwarded-For, X-Real-IP, or fallback to remote addr
+        let ip = req
+            .headers()
+            .get("x-forwarded-for")
+            .and_then(|v| v.to_str().ok())
+            .map(|s| s.split(',').next().unwrap_or(s).trim().to_string())
+            .or_else(|| {
+                req.headers()
+                    .get("x-real-ip")
+                    .and_then(|v| v.to_str().ok())
+                    .map(|s| s.to_string())
+            })
+            .unwrap_or_else(|| "127.0.0.1".to_string());
         let auth_header = req.headers().get("authorization").and_then(|v| v.to_str().ok());
 
         let key = auth_header.and_then(|h| {
@@ -101,11 +125,11 @@ impl Handler for KlineHandler {
         match self.rate_limiter.check(&ip, key) {
             RateLimitResult::KeyLimited => {
                 write_error_response(res, &AppError::RateLimited("Key rate limit exceeded".into()));
-                return Ok(());
+                return;
             }
             RateLimitResult::IpLimited => {
                 write_error_response(res, &AppError::RateLimited("IP rate limit exceeded".into()));
-                return Ok(());
+                return;
             }
             RateLimitResult::Allowed => {}
         }
@@ -113,7 +137,7 @@ impl Handler for KlineHandler {
         // Auth check
         if let Err(e) = self.auth.validate_http(auth_header) {
             write_error_response(res, &e);
-            return Ok(());
+            return;
         }
 
         // Parse query params
@@ -121,7 +145,7 @@ impl Handler for KlineHandler {
             Some(c) => c,
             None => {
                 write_error_response(res, &AppError::BadRequest("Missing required parameter: code".into()));
-                return Ok(());
+                return;
             }
         };
 
@@ -129,7 +153,7 @@ impl Handler for KlineHandler {
             Some(s) => s,
             None => {
                 write_error_response(res, &AppError::BadRequest("Missing required parameter: start".into()));
-                return Ok(());
+                return;
             }
         };
 
@@ -137,7 +161,7 @@ impl Handler for KlineHandler {
             Some(e) => e,
             None => {
                 write_error_response(res, &AppError::BadRequest("Missing required parameter: end".into()));
-                return Ok(());
+                return;
             }
         };
 
@@ -151,6 +175,5 @@ impl Handler for KlineHandler {
                 write_error_response(res, &e);
             }
         }
-        Ok(())
     }
 }

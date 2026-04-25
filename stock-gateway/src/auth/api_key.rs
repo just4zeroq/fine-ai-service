@@ -1,5 +1,6 @@
 use crate::error::{AppError, Result};
 
+#[derive(Clone, Debug)]
 pub struct ApiKeyAuth {
     valid_keys: Vec<String>,
 }

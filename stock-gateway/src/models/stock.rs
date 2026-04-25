@@ -1,15 +1,17 @@
 use serde::{Deserialize, Serialize};
+use sqlx::FromRow;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct Stock {
     pub code: String,
     pub name: Option<String>,
     pub se: Option<String>,
+    #[sqlx(rename = "type")]
     #[serde(rename = "type")]
     pub stock_type: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct KlineRecord {
     pub date: String,
     pub open: Option<f32>,

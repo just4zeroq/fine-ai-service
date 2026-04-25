@@ -7,6 +7,7 @@ pub use jwt::JwtAuth;
 use crate::config::Config;
 use crate::error::{AppError, Result};
 
+#[derive(Clone, Debug)]
 pub struct AuthService {
     api_key: ApiKeyAuth,
     jwt: JwtAuth,
