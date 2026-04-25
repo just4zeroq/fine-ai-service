@@ -3,6 +3,10 @@ name = "stock_gateway"
 version = "0.1.0"
 edition = "2021"
 
+[lib]
+name = "stock_gateway"
+path = "src/lib.rs"
+
 [dependencies]
 # Web framework
 salvo = { version = "0.76", features = ["cookie", "jwt-auth"] }
