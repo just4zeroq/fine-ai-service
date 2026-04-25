@@ -1,6 +1,6 @@
 use serde::Deserialize;
-use sqlx::MySqlPool;
 
+use crate::auth::AuthService;
 use crate::db;
 use crate::error::AppError;
 use crate::models::{KlineResponse, StockListResponse};
@@ -18,12 +18,13 @@ pub struct StockKlineInput {
 }
 
 pub struct StockTools {
-    pool: MySqlPool,
+    pool: sqlx::MySqlPool,
+    auth: AuthService,
 }
 
 impl StockTools {
-    pub fn new(pool: MySqlPool) -> Self {
-        Self { pool }
+    pub fn new(pool: sqlx::MySqlPool, auth: AuthService) -> Self {
+        Self { pool, auth }
     }
 
     pub async fn stock_list(&self, input: StockListInput) -> Result<serde_json::Value, AppError> {
