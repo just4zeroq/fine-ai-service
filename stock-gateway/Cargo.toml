@@ -5,12 +5,10 @@ edition = "2021"
 
 [dependencies]
 # Web framework
-salvo = { version = "0.76", features = ["affix", "cookie", "jwt-auth"] }
-salvo-export = "0.76"
+salvo = { version = "0.76", features = ["cookie", "jwt-auth"] }
 
 # MCP protocol
 rmcp = "0.3"
-rmcp-server = "0.3"
 
 # Async runtime
 tokio = { version = "1", features = ["full"] }
