@@ -1,0 +1,30 @@
+[mcp]
+host = "0.0.0.0"
+port = 8080
+
+[http]
+host = "0.0.0.0"
+port = 8081
+
+[rate_limit]
+ip_limit = 60
+key_limit = 1000
+window_sec = 60
+
+[auth]
+apikeys = [
+  "sk-test-key-001",
+  "sk-test-key-002"
+]
+
+[jwt]
+secret = "your-jwt-secret-change-in-production"
+issuer = "stock-gateway"
+expiration_hours = 24
+
+[database]
+host = "rm-uf6cpg7cwe8xu3i6oso.mysql.rds.aliyuncs.com"
+port = 3306
+user = "fintools"
+password = "123Passwordpro"
+database = "cn_stocks"
