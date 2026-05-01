@@ -19,7 +19,7 @@ DB_CONFIG = {
     "host": "rm-uf6cpg7cwe8xu3i6oso.mysql.rds.aliyuncs.com",
     "port": 3306,
     "user": "fintools",
-    "password": "123Passwordpro",
+    "password": "***",  # 从 config.toml 读取
     "database": "cn_stocks",
 }
 

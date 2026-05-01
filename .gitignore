@@ -1,4 +1,5 @@
 stock-gateway/target/
 stock-gateway/seed_api_keys.sql
+stock-gateway/config.toml
 .code-review-graph/
 

@@ -13,8 +13,8 @@ window_sec = 60
 
 [auth]
 apikeys = [
-  "sk-test-key-001",
-  "sk-test-key-002"
+  "sk-your-key-here",
+  "sk-your-key-here-2"
 ]
 
 [jwt]
@@ -23,8 +23,8 @@ issuer = "stock-gateway"
 expiration_hours = 24
 
 [database]
-host = "rm-uf6cpg7cwe8xu3i6oso.mysql.rds.aliyuncs.com"
+host = "your-mysql-host"
 port = 3306
-user = "fintools"
-password = "123Passwordpro"
-database = "cn_stocks"
+user = "your-db-user"
+password = "your-db-password"
+database = "your-db-name"
