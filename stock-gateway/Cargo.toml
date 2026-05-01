@@ -13,7 +13,7 @@ salvo = { version = "0.76", features = ["cookie", "jwt-auth"] }
 async-trait = "0.1"
 
 # MCP protocol
-rmcp = { path = "../../rust-sdk/crates/rmcp", features = [
+rmcp = { version = "1.5.0", features = [
     "server",
     "macros",
     "transport-io",
@@ -43,6 +43,9 @@ jsonwebtoken = "9"
 
 # Rate limiting
 dashmap = "5"
+
+# Cache
+lru = "0.12"
 
 # Date/time
 chrono = { version = "0.4", features = ["serde"] }

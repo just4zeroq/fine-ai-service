@@ -33,7 +33,7 @@ async fn main() -> anyhow::Result<()> {
     let pool = create_pool(&cfg.database).await?;
 
     // Init services
-    let auth = Arc::new(AuthService::new(&cfg));
+    let auth = Arc::new(AuthService::new(&cfg, pool.clone()));
     let rate_limiter = Arc::new(RateLimiter::new(&cfg.rate_limit));
 
     // Spawn HTTP server

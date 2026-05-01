@@ -61,7 +61,7 @@ impl Handler for StockListHandler {
         }
 
         // Auth check
-        if let Err(e) = self.auth.validate_http(auth_header) {
+        if let Err(e) = self.auth.validate_http(auth_header).await {
             write_error_response(res, &e);
             return;
         }
@@ -135,7 +135,7 @@ impl Handler for KlineHandler {
         }
 
         // Auth check
-        if let Err(e) = self.auth.validate_http(auth_header) {
+        if let Err(e) = self.auth.validate_http(auth_header).await {
             write_error_response(res, &e);
             return;
         }
