@@ -1,2 +1,4 @@
 stock-gateway/target/
 stock-gateway/seed_api_keys.sql
+.code-review-graph/
+

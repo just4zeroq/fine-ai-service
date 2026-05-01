@@ -1,7 +1,8 @@
+use chrono::Utc;
 use sqlx::MySqlPool;
 
 use crate::error::{AppError, Result};
-use crate::models::{KlineRecord, Stock};
+use crate::models::{CreateUserApiKey, KlineRecord, Stock, UserApiKey, UserApiKeyResponse};
 
 pub async fn search_stocks(pool: &MySqlPool, search: Option<&str>) -> Result<Vec<Stock>> {
     let stocks = match search {
@@ -63,4 +64,97 @@ pub async fn query_kline(
         })?;
 
     Ok(records)
+}
+
+// User API Key queries
+
+pub async fn create_user_api_key(
+    pool: &MySqlPool,
+    key: &CreateUserApiKey,
+) -> Result<UserApiKeyResponse> {
+    let now = Utc::now();
+    let result = sqlx::query_as::<_, UserApiKey>(
+        r#"INSERT INTO user_api_keys (user_id, api_key, name, is_active, created_at, expires_at)
+           VALUES (?, ?, ?, true, ?, ?)
+           RETURNING id, user_id, api_key, name, is_active, created_at, expires_at"#
+    )
+    .bind(&key.user_id)
+    .bind(&key.api_key)
+    .bind(&key.name)
+    .bind(now)
+    .bind(key.expires_at)
+    .fetch_one(pool)
+    .await?;
+
+    Ok(result.into())
+}
+
+pub async fn get_user_api_keys(
+    pool: &MySqlPool,
+    user_id: &str,
+) -> Result<Vec<UserApiKeyResponse>> {
+    let keys = sqlx::query_as::<_, UserApiKey>(
+        "SELECT id, user_id, api_key, name, is_active, created_at, expires_at FROM user_api_keys WHERE user_id = ?"
+    )
+    .bind(user_id)
+    .fetch_all(pool)
+    .await?;
+
+    Ok(keys.into_iter().map(|k| k.into()).collect())
+}
+
+pub async fn get_user_api_key_by_key(
+    pool: &MySqlPool,
+    api_key: &str,
+) -> Result<UserApiKey> {
+    let key = sqlx::query_as::<_, UserApiKey>(
+        "SELECT id, user_id, api_key, name, is_active, created_at, expires_at FROM user_api_keys WHERE api_key = ?"
+    )
+    .bind(api_key)
+    .fetch_optional(pool)
+    .await?
+    .ok_or_else(|| AppError::NotFound("API key not found".into()))?;
+
+    Ok(key)
+}
+
+pub async fn validate_user_api_key(
+    pool: &MySqlPool,
+    api_key: &str,
+) -> Result<UserApiKey> {
+    let key = get_user_api_key_by_key(pool, api_key).await?;
+
+    if !key.is_active {
+        return Err(AppError::Unauthorized("API key is inactive".into()));
+    }
+
+    if let Some(expires_at) = key.expires_at {
+        if expires_at < Utc::now() {
+            return Err(AppError::Unauthorized("API key has expired".into()));
+        }
+    }
+
+    Ok(key)
+}
+
+pub async fn deactivate_user_api_key(
+    pool: &MySqlPool,
+    id: i64,
+) -> Result<()> {
+    sqlx::query("UPDATE user_api_keys SET is_active = false WHERE id = ?")
+        .bind(id)
+        .execute(pool)
+        .await?;
+    Ok(())
+}
+
+pub async fn delete_user_api_key(
+    pool: &MySqlPool,
+    id: i64,
+) -> Result<()> {
+    sqlx::query("DELETE FROM user_api_keys WHERE id = ?")
+        .bind(id)
+        .execute(pool)
+        .await?;
+    Ok(())
 }
