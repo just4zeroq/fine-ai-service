@@ -9,7 +9,7 @@ path = "src/lib.rs"
 
 [dependencies]
 # Web framework
-salvo = { version = "0.76", features = ["cookie", "jwt-auth"] }
+salvo = { version = "0.76", features = ["cookie", "jwt-auth", "server-handle"] }
 async-trait = "0.1"
 
 # MCP protocol
@@ -20,10 +20,15 @@ rmcp = { version = "1.5.0", features = [
     "transport-streamable-http-server",
     "schemars",
 ] }
-axum = { version = "0.8", features = ["macros"] }
-hyper = { version = "1" }
-hyper-util = { version = "0", features = ["server", "tokio"] }
 tokio-util = { version = "0.7" }
+
+# Timer needed by hyper for header_read_timeout
+hyper-util = { version = "0.1", features = ["tokio"] }
+
+# HTTP types (needed for tower service bridging in McpHandler)
+http = "1"
+http-body-util = "0.1"
+bytes = "1"
 
 # Async runtime
 tokio = { version = "1", features = ["full"] }

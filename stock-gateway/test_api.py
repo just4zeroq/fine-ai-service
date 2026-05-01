@@ -1,30 +1,20 @@
 #!/usr/bin/env python3
 """
 测试脚本：
-1. 写入测试 API Key 到数据库
-2. 测试 HTTP 接口认证（有效/过期/无效/无 key）
-3. 测试 MCP 接口认证（initialize + session 续传）
-4. 验证 LRU 缓存效果
+1. 测试 HTTP 接口认证（有效/过期/无效/无 key）
+2. 测试 MCP 接口认证（initialize + session 续传）
+3. 验证 LRU 缓存效果
+
+前置条件：测试 Key 已预先写入数据库（通过 seed_api_keys.sql 或其他方式）。
 """
 import json
 import urllib.request
 import urllib.error
 import sys
 import time
-import re
-import pymysql
-from datetime import datetime, timezone, timedelta
-
-DB_CONFIG = {
-    "host": "rm-uf6cpg7cwe8xu3i6oso.mysql.rds.aliyuncs.com",
-    "port": 3306,
-    "user": "fintools",
-    "password": "***",  # 从 config.toml 读取
-    "database": "cn_stocks",
-}
 
 HTTP_BASE = "http://localhost:8081"
-MCP_URL = "http://localhost:8080/mcp"
+MCP_URL = "http://localhost:8081/mcp"
 
 VALID_KEY = "sk-test-key-001"
 EXPIRED_KEY = "sk-test-key-expired"
@@ -42,45 +32,6 @@ def log_test(name, ok, detail=""):
     else:
         failed += 1
     print(f"  [{status}] {name}" + (f" — {detail}" if detail else ""))
-
-
-# =============================================
-print("=" * 60)
-print("0. 数据库初始化 — 写入测试 Key")
-print("=" * 60)
-
-conn = pymysql.connect(**DB_CONFIG)
-try:
-    with conn.cursor() as cur:
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS user_api_keys (
-                id BIGINT AUTO_INCREMENT PRIMARY KEY,
-                user_id VARCHAR(255) NOT NULL,
-                api_key VARCHAR(255) NOT NULL UNIQUE,
-                name VARCHAR(255) DEFAULT NULL,
-                is_active TINYINT(1) NOT NULL DEFAULT 1,
-                created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                expires_at DATETIME DEFAULT NULL,
-                INDEX idx_api_key (api_key),
-                INDEX idx_user_id (user_id)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
-        """)
-        conn.commit()
-        cur.execute("DELETE FROM user_api_keys WHERE api_key IN (%s, %s)",
-                     (VALID_KEY, EXPIRED_KEY))
-        cur.execute(
-            "INSERT INTO user_api_keys (user_id, api_key, name, is_active, created_at, expires_at) "
-            "VALUES (%s, %s, %s, TRUE, UTC_TIMESTAMP(), NULL)",
-            ("test_user_1", VALID_KEY, "永不过期测试Key"))
-        expired_dt = datetime.now(timezone.utc) - timedelta(minutes=1)
-        cur.execute(
-            "INSERT INTO user_api_keys (user_id, api_key, name, is_active, created_at, expires_at) "
-            "VALUES (%s, %s, %s, TRUE, UTC_TIMESTAMP(), %s)",
-            ("test_user_2", EXPIRED_KEY, "已过期测试Key", expired_dt))
-        conn.commit()
-        log_test("测试 Key 写入数据库", True, f"valid={VALID_KEY}, expired={EXPIRED_KEY}")
-finally:
-    conn.close()
 
 
 # =============================================

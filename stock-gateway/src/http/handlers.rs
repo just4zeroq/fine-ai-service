@@ -1,6 +1,7 @@
 use async_trait::async_trait;
 use salvo::prelude::*;
 use std::sync::Arc;
+use std::time::Duration;
 
 use crate::auth::AuthService;
 use crate::db;
@@ -69,14 +70,17 @@ impl Handler for StockListHandler {
         // Parse query
         let search = req.queries().get("search").cloned();
 
-        // Query
-        match db::queries::search_stocks(&self.pool, search.as_deref()).await {
-            Ok(stocks) => {
+        // Query with timeout to prevent CLOSE_WAIT on proxy disconnect
+        match tokio::time::timeout(Duration::from_secs(10), db::queries::search_stocks(&self.pool, search.as_deref())).await {
+            Ok(Ok(stocks)) => {
                 res.status_code(StatusCode::OK);
                 res.render(Json(StockListResponse { data: stocks }));
             }
-            Err(e) => {
+            Ok(Err(e)) => {
                 write_error_response(res, &e);
+            }
+            Err(_) => {
+                write_error_response(res, &AppError::Internal("Stock list query timed out".into()));
             }
         }
     }
@@ -165,14 +169,17 @@ impl Handler for KlineHandler {
             }
         };
 
-        // Query
-        match db::queries::query_kline(&self.pool, &code, &start, &end).await {
-            Ok(records) => {
+        // Query with timeout to prevent CLOSE_WAIT on proxy disconnect
+        match tokio::time::timeout(Duration::from_secs(10), db::queries::query_kline(&self.pool, &code, &start, &end)).await {
+            Ok(Ok(records)) => {
                 res.status_code(StatusCode::OK);
                 res.render(Json(KlineResponse { code, data: records }));
             }
-            Err(e) => {
+            Ok(Err(e)) => {
                 write_error_response(res, &e);
+            }
+            Err(_) => {
+                write_error_response(res, &AppError::Internal("Kline query timed out".into()));
             }
         }
     }
